@@ -8,8 +8,9 @@ import java.util.Scanner;
 public class Konkordans {
 
 	public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
+		if(args.length == 0) System.out.println("Du måste skriva ett ord för att söka.");
+		if(args.length > 1) System.out.println("Du kan bara söka efter ett ord åt gången");
 		
-		HEJ ELIN!
 		
 		
 	}
@@ -47,6 +48,7 @@ public class Konkordans {
 		return true;
 		}
 
+	
 
 }
 
