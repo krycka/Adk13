@@ -8,31 +8,92 @@ import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
 import java.util.Scanner;
 
+/**
+ * 
+ * @author elincl
+ * Att kontrollera innan inlämning:
+ * - Att den klarar av det sista ordet i varje index
+ * - sista ordet i korpus
+ * - Binärsökning?
+ * - Vaginalfantasi != vagina
+ * - Städa
+ * - Lägg in antal träffar
+ * - åäö-stöd
+ * - kontrollera case insensitive
+ * - lägg in om det är många resultat för en sökning (Visa alla?)
+ * - spara res mot korpus i länkad lista
+ */
+
 
 public class Konkordans {
+	private static File korpus;
 	private static File tokfile;
 	private static File bucket;
 	private static File wordIndex;
 	private static final boolean DBG = true;
+	private static Time searchTime;
 
-
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, InterruptedException {
 		if(args.length == 0) System.out.println("Du måste skriva ett ord för att söka.");
 		if(args.length > 1) System.out.println("Du kan bara söka efter ett ord åt gången");
 
 		if(!checkIndexes()) {
+			System.out.println("En eller fler filer saknas, genererar nya filer...");
 			createIndexes();
 		}
 		
-		//search
+		// Indexer finns garanterat nu! Fortsätt med sökningen.
+		searchTime = new Time();
+		searchTime.start();
+		
+		// Hämta position i wordIndex från bucket
+		RandomAccessFile raf = new RandomAccessFile(bucket, "r");
+		raf.seek(getBucketPosition(args[0]));
+		long wordIndexPos = raf.readLong();
+		long wordIndexNextPos = wordIndexPos+8;
+		long tokfilePos = 0;
+		long tokfileNextPos = 0;
+		
+		// Hämta offsett för ordet i tokfile
+		raf = new RandomAccessFile(wordIndex, "r");
+		boolean found = false;
+		for(long i=wordIndexPos; i<wordIndexNextPos && !found; i=raf.getFilePointer()) {
+			String line[] = raf.readLine().split(" ");
+			if(line[0].equals(args[0])) {
+				// Hämta offset i tokfile
+				tokfilePos = Long.parseLong(line[1]);
+				// Hämta offset till nästa ord
+				line = raf.readLine().split(" ");
+				tokfileNextPos = Long.parseLong(line[1]);
+				found = true;
+			}
+		}
+		
+		System.out.println(searchTime.stop());
+		// Hämta alla offsets för ett ord i tokfile till korpus
+		raf = new RandomAccessFile(tokfile, "r");
+		RandomAccessFile rafKorpus = new RandomAccessFile(korpus, "r");
+		raf.seek(tokfilePos);
+		
+		for(long i=tokfilePos; i<tokfileNextPos; i=raf.getFilePointer()) {
+			String line[] = raf.readLine().split(" ");
+			Long posKorpus = Long.parseLong(line[1]);
+			byte[] b = new byte[30+args[0].length()+30];
+			rafKorpus.seek(posKorpus-30);
+			rafKorpus.read(b);
+			
+			System.out.println(new String(b));
+		}
+		
 		
 
 	}
 
 	private static boolean checkIndexes() {
-		tokfile = new File("/var/tmp/elincl_ut");
-		bucket = new File("bucket");
-		wordIndex = new File("wordIndex");
+		korpus = new File("/info/adk13/labb1/korpus");
+		tokfile = new File("/var/tmp/tokfile");
+		bucket = new File("/var/tmp/bucket");
+		wordIndex = new File("/var/tmp/wordIndex");
 
 		if(tokfile.exists() && bucket.exists() && wordIndex.exists())
 			return true;
@@ -41,13 +102,24 @@ public class Konkordans {
 	}
 
 
-	public static boolean createIndexes() throws IOException{
+	public static boolean createIndexes() throws IOException, InterruptedException{
 		//		createBucket();
+//		createTokfile();
 		createWordIndex();
 		createBucket();
+		
 		return true;
 
 	}
+	
+	private static boolean createTokfile() throws IOException, InterruptedException{
+		System.out.println("Creating tokfile...");
+		Process p;
+		p= Runtime.getRuntime().exec("/info/adk13/labb1/tokenizer < /info/adk13/labb1/korpus | sort > /var/tmp/tokfile");
+		p.waitFor();
+		return true;
+	}
+	
 	public static boolean createBucket() throws IOException{
 		System.out.println("Creating bucket index...");
 		Scanner in = new Scanner(wordIndex, "UTF-8");
@@ -81,7 +153,7 @@ public class Konkordans {
 
 	public static boolean createWordIndex() throws FileNotFoundException, UnsupportedEncodingException{
 		System.out.println("Creating wordIndex...");
-		Scanner in = new Scanner(new File("/var/tmp/elincl_ut"), "ISO-8859-1");
+		Scanner in = new Scanner(tokfile, "ISO-8859-1");
 		PrintWriter writer = new PrintWriter(wordIndex, "UTF-8");
 		String lastWord = "";
 		String line = "";
@@ -104,7 +176,9 @@ public class Konkordans {
 
 	private static long getBucketPosition(String word){
 		long off = 0;
+		if(word.length() > 3) word = word.substring(0, 3);
 		char[] letters = word.toLowerCase().toCharArray();
+		
 
 		/*
 		 * å = 134
