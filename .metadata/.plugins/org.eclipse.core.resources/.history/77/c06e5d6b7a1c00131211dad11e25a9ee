@@ -1,0 +1,72 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.util.Scanner;
+
+
+public class Konkordans {
+
+	public static void main(String[] args) throws FileNotFoundException {
+
+
+
+
+		Scanner in = new Scanner(new File("/var/tmp/elincl_ut"), "ISO-8859-1");
+		//						 BufferedReader in
+		//						   = new BufferedReader(new FileReader("/var/tmp/elincl_ut"));
+
+		//BufferedWriter out = new BufferedWriter(new File("A"));
+
+		PrintWriter writer = new PrintWriter("A.txt", "UTF-8");
+
+
+
+		//						 PrintWriter out
+		//						  = new PrintWriter(new BufferedWriter(new FileWriter("A.txt")));
+
+
+
+		String lastWord = "";
+		String line = "";
+		while(in.hasNextLine()){
+			line = in.nextLine();
+			String[] shortWord = line.split(" ");
+			String newWord;
+			if(shortWord[0].length() < 3)
+				newWord = line.substring(0, shortWord[0].length());
+			else
+				newWord = line.substring(0, 3);
+
+			if(!newWord.equals(lastWord)){
+				String[] lineNr = line.split(" ");
+				String a = newWord + " " + lineNr[1];
+				//Skriv newWord och teckenposition i elincl_ut till a.
+				//								 String c = new String(a, "ISO-8859-1");
+				writer.println(a);
+				lastWord = newWord;
+			}
+
+
+		}
+
+		writer.close();
+
+		//CharSequence b = in.readLine();
+		//String t = new String(b, "ISO-8859-1");
+
+
+
+		/*
+		 * Läs in rader från I och skapa en lista med olika kombinationer av tre bokstäver 
+		 * och vilken rad i I orden som dessa bokstäver böjar på ligger. Alltså:
+		 * AAA 4000
+		 * ABD 5000
+		 * osv
+		 * 
+		 * Skapa A. 
+		 */
+	}
+
+
+}
+

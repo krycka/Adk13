@@ -8,17 +8,23 @@ import java.util.Scanner;
 public class Konkordans {
 
 	public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
-		
-		
-		
-	}
-	
-	
-	public static boolean createIndex() throws FileNotFoundException, UnsupportedEncodingException{
+
+
+
 
 		Scanner in = new Scanner(new File("/var/tmp/elincl_ut"), "ISO-8859-1");
-		
+		//						 BufferedReader in
+		//						   = new BufferedReader(new FileReader("/var/tmp/elincl_ut"));
+
+		//BufferedWriter out = new BufferedWriter(new File("A"));
+
 		PrintWriter writer = new PrintWriter("A.txt", "UTF-8");
+
+
+
+		//						 PrintWriter out
+		//						  = new PrintWriter(new BufferedWriter(new FileWriter("A.txt")));
+
 
 
 		String lastWord = "";
@@ -35,16 +41,32 @@ public class Konkordans {
 			if(!newWord.equals(lastWord)){
 				String[] lineNr = line.split(" ");
 				String a = newWord + " " + lineNr[1];
+				//Skriv newWord och teckenposition i elincl_ut till a.
+				//								 String c = new String(a, "ISO-8859-1");
 				writer.println(a);
 				lastWord = newWord;
 			}
 
+
 		}
 
 		writer.close();
-		
-		return true;
-		}
+
+		//CharSequence b = in.readLine();
+		//String t = new String(b, "ISO-8859-1");
+
+
+
+		/*
+		 * Läs in rader från I och skapa en lista med olika kombinationer av tre bokstäver 
+		 * och vilken rad i I orden som dessa bokstäver böjar på ligger. Alltså:
+		 * AAA 4000
+		 * ABD 5000
+		 * osv
+		 * 
+		 * Skapa A. 
+		 */
+	}
 
 
 }

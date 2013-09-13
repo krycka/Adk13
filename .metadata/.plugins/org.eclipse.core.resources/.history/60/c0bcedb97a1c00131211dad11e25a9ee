@@ -8,13 +8,9 @@ import java.util.Scanner;
 public class Konkordans {
 
 	public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
-		
-		
-		
-	}
-	
-	
-	public static boolean createIndex() throws FileNotFoundException, UnsupportedEncodingException{
+
+
+
 
 		Scanner in = new Scanner(new File("/var/tmp/elincl_ut"), "ISO-8859-1");
 		
@@ -42,9 +38,8 @@ public class Konkordans {
 		}
 
 		writer.close();
-		
-		return true;
-		}
+
+	}
 
 
 }
