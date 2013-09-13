@@ -2,7 +2,9 @@
 .classpath
 .project
 .settings
+.metadata
 bin
+
 
 # Package Files #
 *.jar
