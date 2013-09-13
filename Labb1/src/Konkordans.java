@@ -7,6 +7,8 @@ public class Konkordans {
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 
+		
+		HEJ CHRISTOFejl
 	}
 
 }
