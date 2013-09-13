@@ -9,6 +9,7 @@ public class Konkordans {
 
 	public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException {
 		
+		HEJ ELIN!
 		
 		
 	}
