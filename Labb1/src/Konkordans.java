@@ -187,24 +187,22 @@ public class Konkordans {
 		Scanner in = new Scanner(tokfile, "ISO-8859-1");
 		PrintWriter writer = new PrintWriter(wordIndex, "ISO-8859-1");
 		
-		String lastWord = "";
-		String line = "";
+		String[] line = in.nextLine().split(" ");
+		String lastWord = line[0];
+		
 		long pos = 0;
-		int count = 0;
+		int count = 1;
 		
 		while(in.hasNextLine()) {
-			line = in.nextLine();
-			String[] shortWord = line.split(" ");
-			String newWord = shortWord[0];
+			line = in.nextLine().split(" ");
+			String newWord = line[0];
 			if(!newWord.equals(lastWord)){ //om senast skrivna ordet inte är lika med det aktuella ordet, skriv det till filen. 
-				String a = newWord + " " + pos + " " + count;
-//				System.out.println(a);
-				writer.println(a);
+				writer.println(newWord + " " + pos + " " + count);
 				lastWord = newWord;
 				count = 0;
 			}
 			count++;
-			pos += line.length()+1;
+			pos += line[0].length()+line[1].length()+1;
 		}
 		writer.close();
 		in.close();
