@@ -171,7 +171,7 @@ public class Konkordans {
 			if(!newWord.equals(lastWord)){				
 				out.seek(getBucketOffset(newWord));
 				out.writeLong(pos);
-				System.out.println("word: "+newWord+" seek: "+getBucketOffset(newWord)+" pos: "+pos);
+//				System.out.println("word: "+newWord+" seek: "+getBucketOffset(newWord)+" pos: "+pos);
 				lastWord = newWord;
 			}
 			pos += line.length()+1;
@@ -198,7 +198,7 @@ public class Konkordans {
 			String newWord = shortWord[0];
 			if(!newWord.equals(lastWord)){ //om senast skrivna ordet inte är lika med det aktuella ordet, skriv det till filen. 
 				String a = newWord + " " + pos + " " + count;
-				System.out.println(a);
+//				System.out.println(a);
 				writer.println(a);
 				lastWord = newWord;
 				count = 0;
