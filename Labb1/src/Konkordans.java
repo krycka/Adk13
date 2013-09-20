@@ -8,12 +8,9 @@ import java.io.UnsupportedEncodingException;
 import java.util.Scanner;
 
 /**
- * 
- * @author elincl
- * Att kontrollera innan inlämning:
- * - Städa
+ * Konkordans - Söker efter alla förekomster av ett ord i korpus.txt
+ * @author Christoffer Rödöö & Elin Clemmedsson
  */
-
 public class Konkordans {
 	private static File korpus;
 	private static File tokfile;
@@ -53,15 +50,12 @@ public class Konkordans {
 		// Kontrollera att vi fẗt en giltig position, annars finns ej ordet.
 		if(wordIndexPos == 0) {
 			wordIndexNextPos = -1;
-			//			System.out.println("Ordet finns ej..");
-			//			System.exit(1);
-		} else {
-			// Fick en giltig pos, hämta nästa ord åxå.
+		} else {// Fick en giltig pos, hämta nästa ord åxå.			
 			try {
 				wordIndexNextPos = raf.readLong();
 				for(int i=0; i<100 && wordIndexNextPos == 0; i++) 
 					wordIndexNextPos = raf.readLong();
-			} catch(EOFException e) {
+			} catch(EOFException e) { // Vi nådde slutet av filen, sätt slutpos till slutet av filen.
 				wordIndexNextPos = wordIndex.length();
 			}
 		}
@@ -71,7 +65,6 @@ public class Konkordans {
 		raf = new RandomAccessFile(wordIndex, "r");
 		raf.seek(wordIndexPos);
 		long tokfilePos = 0;
-//		long tokfileNextPos = 0;
 		int wordCount = 0;
 		boolean found = false;
 		
@@ -102,22 +95,23 @@ public class Konkordans {
 		
 		// Skriv ut från korpus!
 		RandomAccessFile rafTokfile = new RandomAccessFile(tokfile, "r");
-		rafTokfile.seek(tokfilePos);
 		RandomAccessFile rafKorpus = new RandomAccessFile(korpus, "r");
 		byte[] b = new byte[30+searchWord.length()+30];
 		
+		rafTokfile.seek(tokfilePos);
+		
 		for(int i=0; i<resultsLimit; i++) {
-			String line[] = rafTokfile.readLine().split(" ");
-			rafKorpus.seek(Long.parseLong(line[1])-30);
-			rafKorpus.read(b);
-			
-			System.out.println(i+1+":\t "+new String(trimOutput(b), "ISO-8859-1"));
+			String line[] = rafTokfile.readLine().split(" ");	// Hämta offset för nästa ord
+			rafKorpus.seek(Long.parseLong(line[1])-30);			// Applicera offseten mot korpus
+			rafKorpus.read(b);									// Hämta meningen	
+			System.out.println(i+1+":\t "+new String(trimOutput(b), "ISO-8859-1")); // printa utan enter och dyl.
 		}
 		System.out.println();
 		System.out.println("Utskrift av resultatet tog: "+(float)stopWatch.stop()/1000+"s");
 		raf.close();
 		System.exit(0);
 	}
+
 
 	private static boolean checkIndexes() {
 		if(tokfile.exists() && bucket.exists() && wordIndex.exists())
@@ -127,31 +121,29 @@ public class Konkordans {
 
 
 	private static boolean createIndexes() throws IOException, InterruptedException{
-		createTokfile();
-		createWordIndex();
-		createBucket();
-		
-		return true;
-
+		if(createTokfile() && createWordIndex() && createBucket())
+			return true;
+		return false;
 	}
 	
+	
 	private static boolean createTokfile() throws IOException, InterruptedException{
-//		System.out.println("Creating tokfile...");
 		if(tokfile.exists())
 			return true;
 		System.out.println("Missing tokfile, run the following commands in the terminal:");
 		System.out.println();
 		System.out.println("export LC_COLLATE=C");
 		System.out.println("/info/adk13/labb1/tokenizer < /info/adk13/labb1/korpus | sort > /var/tmp/tokfile\n");
-		System.exit(1);
-		
+		System.exit(1);		
 		return false;
-//		Process p;
-//		p= Runtime.getRuntime().exec("/info/adk13/labb1/tokenizer < /info/adk13/labb1/korpus | sort > /var/tmp/tokfile");
-//		p.waitFor();
-//		return true;
 	}
 	
+	/**
+	 * Skapar en "latmanshashning", aka bucket. Varje offset till trebokstavskombinationer av orden i wordIndex lagras
+	 * binärt på en uträknad plats beroende på sina bokstäver. 
+	 * @return true om allt gått väl, annars false.
+	 * @throws IOException
+	 */
 	private static boolean createBucket() throws IOException{
 		System.out.println("Creating bucket index...");
 		Scanner in = new Scanner(wordIndex, "ISO-8859-1");
@@ -183,34 +175,38 @@ public class Konkordans {
 		return true;
 	}
 
+	/**
+	 * Skapar wordIndexfilen som innehåller ett förekomst av varje ord och dess position i tokfile och antalet förekomster.
+	 * @return	true om allt gått väl, annars false.
+	 * @throws FileNotFoundException
+	 * @throws UnsupportedEncodingException
+	 */
 	private static boolean createWordIndex() throws FileNotFoundException, UnsupportedEncodingException{
 		System.out.println("Creating wordIndex...");
 		
 		Scanner in = new Scanner(tokfile, "ISO-8859-1");
 		PrintWriter writer = new PrintWriter(wordIndex, "ISO-8859-1");
 		
-		String[] line = in.nextLine().split(" ");
-		String lastWord = line[0], newWord = "";
-		
 		long pos = 0, prevPos=0;
 		int count = 0;
+		// Hämta första raden raden redan nu, annars kommer while satsen nedan strunta i det första ordet.
+		String[] line = in.nextLine().split(" ");
+		String lastWord = line[0], newWord = "";		
 		
+		// Gå igenom alla rader i tokfile och skriv in en förekomst av varje ord, dess placering i tokfile och hur många det är.
 		while(in.hasNextLine()) {
 			line = in.nextLine().split(" ");
 			newWord = line[0];
-			
-			count++;
 			pos += (line[0].length()+line[1].length()+2); // +2 för space mellan ord och offsett samt newline på slutet
-			
+			count++;
 			if(!newWord.equals(lastWord)) { //om senast skrivna ordet inte är lika med det aktuella ordet, skriv det till filen.
 				writer.println(lastWord + " " + prevPos + " " + count);
 				lastWord = newWord;
 				count = 0;
 				prevPos = pos;
 			}
-			
 		}
-		// Skriv ut sista ordet, plus ett då vi inte kommer att räkna med den sista raden.
+		// Skriv ut sista ordet, plus ett då vi inte kommer att räkna med den sista raden i while-loopen.
 		writer.println(newWord + " " + prevPos + " " + (count+1));
 		writer.close();
 		in.close();
@@ -218,7 +214,12 @@ public class Konkordans {
 		return true;
 	}
 	
-
+	/**
+	 * Beräknar en offset till bucketfilen baserat på de tre första bokstäverna i ett ord.
+	 * Skapar med andra ord en tredimensionell array i en fil.
+	 * @param word ordet som skall få en offset
+	 * @return offsetten för ordet.
+	 */
 	private static long getBucketOffset(String word){
 		long pos = 0;
 		if(word.length() > 3) word = word.substring(0, 3);
@@ -237,9 +238,9 @@ public class Konkordans {
 		return pos*8;
 	}
 	/**
-	 * Removes newlines, carriage returns and tabs and replaces them with a space.
-	 * @param b
-	 * @return b 
+	 * Tar bort radbyten, enter, och tabbar och ersätter dom med space.
+	 * @param b	 bytearray med texten som skall trimmas
+	 * @return b Bytearray utan de oönskade tecknen.
 	 */
 	private static byte[] trimOutput(byte[] b) {
 		for(int i=0; i<b.length; i++) {
