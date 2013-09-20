@@ -1,3 +1,4 @@
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -10,19 +11,8 @@ import java.util.Scanner;
  * 
  * @author elincl
  * Att kontrollera innan inlämning:
- * - Att den klarar av det sista ordet i varje index
- * - sista ordet i korpus
- * - Binärsökning?
  * - Städa
- * - Åtgärdat? Lägg in antal träffar
- * - Åtgärdat? åäö-stöd
- * - kontrollera case insensitive
- * - lägg in om det är många resultat för en sökning (Visa alla?)
- * - spara res mot korpus i länkad lista
- * - Två longs per bokstavskomb i bucket? dvs från offset, till offset.
- * 
  */
-
 
 public class Konkordans {
 	private static File korpus;
@@ -57,12 +47,26 @@ public class Konkordans {
 		// Hämta position att söka på i wordIndex från bucket
 		RandomAccessFile raf = new RandomAccessFile(bucket, "r");
 		raf.seek(getBucketOffset(searchWord));
-		long wordIndexPos = raf.readLong();
-		long wordIndexNextPos = raf.readLong();
-		for(int i=0; i<100 && wordIndexNextPos == 0; i++) 
-			wordIndexNextPos = raf.readLong();
-		raf.close();
+		long wordIndexPos = raf.readLong();		
+		long wordIndexNextPos = 0;
 		
+		// Kontrollera att vi fẗt en giltig position, annars finns ej ordet.
+		if(wordIndexPos == 0) {
+			wordIndexNextPos = -1;
+			//			System.out.println("Ordet finns ej..");
+			//			System.exit(1);
+		} else {
+			// Fick en giltig pos, hämta nästa ord åxå.
+			try {
+				wordIndexNextPos = raf.readLong();
+				for(int i=0; i<100 && wordIndexNextPos == 0; i++) 
+					wordIndexNextPos = raf.readLong();
+			} catch(EOFException e) {
+				wordIndexNextPos = wordIndex.length();
+			}
+		}
+		raf.close();
+
 		// Hämta offset för ordet i tokfile från wordIndex
 		raf = new RandomAccessFile(wordIndex, "r");
 		raf.seek(wordIndexPos);
@@ -77,10 +81,6 @@ public class Konkordans {
 				// Hämta offset i tokfile
 				tokfilePos = Long.parseLong(line[1]);
 				wordCount = Integer.parseInt(line[2]);
-//				System.out.println(wordCount);
-				// Hämta offset till nästa ord
-//				line = raf.readLine().split(" ");
-//				tokfileNextPos = Long.parseLong(line[1]);
 				found = true; // break; istallet?
 			}
 		}
@@ -111,11 +111,12 @@ public class Konkordans {
 			rafKorpus.seek(Long.parseLong(line[1])-30);
 			rafKorpus.read(b);
 			
-			System.out.println(i+1+": "+new String(trimOutput(b), "ISO-8859-1"));
+			System.out.println(i+1+":\t "+new String(trimOutput(b), "ISO-8859-1"));
 		}
 		System.out.println();
 		System.out.println("Utskrift av resultatet tog: "+(float)stopWatch.stop()/1000+"s");
 		raf.close();
+		System.exit(0);
 	}
 
 	private static boolean checkIndexes() {
@@ -189,23 +190,28 @@ public class Konkordans {
 		PrintWriter writer = new PrintWriter(wordIndex, "ISO-8859-1");
 		
 		String[] line = in.nextLine().split(" ");
-		String lastWord = line[0];
+		String lastWord = line[0], newWord = "";
 		
 		long pos = 0, prevPos=0;
-		int count = 1;
+		int count = 0;
 		
 		while(in.hasNextLine()) {
 			line = in.nextLine().split(" ");
-			String newWord = line[0];
-			if(!newWord.equals(lastWord)) { //om senast skrivna ordet inte är lika med det aktuella ordet, skriv det till filen. 
+			newWord = line[0];
+			
+			count++;
+			pos += (line[0].length()+line[1].length()+2); // +2 för space mellan ord och offsett samt newline på slutet
+			
+			if(!newWord.equals(lastWord)) { //om senast skrivna ordet inte är lika med det aktuella ordet, skriv det till filen.
 				writer.println(lastWord + " " + prevPos + " " + count);
 				lastWord = newWord;
 				count = 0;
 				prevPos = pos;
 			}
-			count++;
-			pos += (line[0].length()+line[1].length()+2); // +2 för space mellan ord och offsett samt newline på slutet
+			
 		}
+		// Skriv ut sista ordet, plus ett då vi inte kommer att räkna med den sista raden.
+		writer.println(newWord + " " + prevPos + " " + (count+1));
 		writer.close();
 		in.close();
 
