@@ -52,8 +52,6 @@ public class Konkordans {
 		RandomAccessFile rafKorpus = new RandomAccessFile(korpus, "r");
 		
 		// Hämta position att söka på i wordIndex från bucket
-//		RandomAccessFile raf = new RandomAccessFile(bucket, "r");
-//		raf.seek(getBucketOffset(searchWord));
 		rafBucket.seek(getBucketOffset(searchWord));
 		long wordIndexPos = rafBucket.readLong();		
 		long wordIndexNextPos = 0;
@@ -72,10 +70,8 @@ public class Konkordans {
 				wordIndexNextPos = wordIndex.length();
 			}
 		}
-//		raf.close();
 
 		// Hämta offset för ordet i tokfile från wordIndex
-//		raf = new RandomAccessFile(wordIndex, "r");
 		rafWordIndex.seek(wordIndexPos);
 		long tokfilePos = 0;
 		int wordCount = 0;
@@ -90,7 +86,6 @@ public class Konkordans {
 				found = true; // break; istallet?
 			}
 		}
-//		raf.close();
 		
 		System.out.println();
 		System.out.println("Hittade "+wordCount+" förekomster av ordet: \""+searchWord+"\". Sökningen tog "+(float)stopWatch.stop()/1000+"s.");
@@ -107,8 +102,6 @@ public class Konkordans {
 		stopWatch.start();
 		
 		// Skriv ut från korpus!
-//		RandomAccessFile rafTokfile = new RandomAccessFile(tokfile, "r");
-//		RandomAccessFile rafKorpus = new RandomAccessFile(korpus, "r");
 		byte[] b = new byte[30+searchWord.length()+30];
 		
 		rafTokfile.seek(tokfilePos);
@@ -121,7 +114,6 @@ public class Konkordans {
 		}
 		System.out.println();
 		System.out.println("Utskrift av resultatet tog: "+(float)stopWatch.stop()/1000+"s");
-//		raf.close();
 		
 		rafBucket.close();
 		rafWordIndex.close();
