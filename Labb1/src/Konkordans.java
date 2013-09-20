@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.io.UnsupportedEncodingException;
-import java.util.LinkedList;
 import java.util.Scanner;
 
 /**
@@ -30,9 +29,8 @@ public class Konkordans {
 	private static File tokfile;
 	private static File bucket;
 	private static File wordIndex;
-	private static Time searchTime;
+	private static StopWatch stopWatch;
 	private static int resultsLimit = 25;
-	private static final boolean DBG = true;
 
 	public static void main(String[] args) throws IOException, InterruptedException {
 		// Kontrollera att vi har fått ett ord att söka efter
@@ -53,8 +51,8 @@ public class Konkordans {
 			createIndexes();
 		}		
 		// Nu är vi garanterade att ha de filer vi behöver
-		searchTime = new Time();
-		searchTime.start();
+		stopWatch = new StopWatch();
+		stopWatch.start();
 		
 		// Hämta position att söka på i wordIndex från bucket
 		RandomAccessFile raf = new RandomAccessFile(bucket, "r");
@@ -83,45 +81,54 @@ public class Konkordans {
 				// Hämta offset till nästa ord
 				line = raf.readLine().split(" ");
 				tokfileNextPos = Long.parseLong(line[1]);
-				found = true;
+				found = true; // break; istallet?
 			}
 		}
 		raf.close();
 		
 		// Hämta alla förekomster av ordet från tokfile och spara deras offsets
-		LinkedList<Long> results = new LinkedList<Long>();
-		raf = new RandomAccessFile(tokfile, "r");
-		raf.seek(tokfilePos);
-		for(long i=tokfilePos; i<tokfileNextPos; i=raf.getFilePointer()) {
-			String line[] = raf.readLine().split(" ");
-			results.add(Long.parseLong(line[1]));
-		}
-		raf.close();
+//		LinkedList<Long> results = new LinkedList<Long>();
+//		raf = new RandomAccessFile(tokfile, "r");
+//		raf.seek(tokfilePos);
+//		for(long i=tokfilePos; i<tokfileNextPos; i=raf.getFilePointer()) {
+//			String line = raf.readLine();
+//			String temp[]= line.split(" ");
+//			results.add(Long.parseLong(temp[1]));
+//		}
+//		raf.close();
+		
+		
 		
 		System.out.println();
-		System.out.println("Hittade "+results.size()+" förekomster av ordet: \""+searchWord+"\". Sökningen tog "+(float)searchTime.stop()/1000+"s.");
-		if(results.size() > resultsLimit) {
+		System.out.println("Hittade "+wordCount+" förekomster av ordet: \""+searchWord+"\". Sökningen tog "+(float)stopWatch.stop()/1000+"s.");
+//		System.out.println("Hittade "+results.size()+" förekomster av ordet: \""+searchWord+"\". Sökningen tog "+(float)stopWatch.stop()/1000+"s.");
+		if(wordCount > resultsLimit) {
 			System.out.println("Visa alla? [j/n]");
 			Scanner in = new Scanner(System.in);
 			if(in.nextLine().equals("j")) 
-				resultsLimit = results.size();
+				resultsLimit = wordCount;
 			in.close();
 		} else {
-			resultsLimit = results.size();
+			resultsLimit = wordCount;
 		}
 		System.out.println();
+		stopWatch.start();
 		
 		// Skriv ut från korpus!
-		raf = new RandomAccessFile(korpus, "r");
+		RandomAccessFile rafTokfile = new RandomAccessFile(tokfile, "r");
+		rafTokfile.seek(tokfilePos);
+		RandomAccessFile rafKorpus = new RandomAccessFile(korpus, "r");
 		byte[] b = new byte[30+searchWord.length()+30];
 		
 		for(int i=0; i<resultsLimit; i++) {
-			raf.seek(results.poll()-30);
-			raf.read(b);
+			String line[] = rafTokfile.readLine().split(" ");
+			rafKorpus.seek(Long.parseLong(line[1])-30);
+			rafKorpus.read(b);
 			
 			System.out.println(i+1+": "+new String(trimOutput(b), "ISO-8859-1"));
 		}
 		System.out.println();
+		System.out.println("Utskrift av resultatet tog: "+(float)stopWatch.stop()/1000+"s");
 		raf.close();
 	}
 
@@ -129,12 +136,11 @@ public class Konkordans {
 		if(tokfile.exists() && bucket.exists() && wordIndex.exists())
 			return true;
 		return false;
-
 	}
 
 
 	private static boolean createIndexes() throws IOException, InterruptedException{
-//		createTokfile();
+		createTokfile();
 		createWordIndex();
 		createBucket();
 		
@@ -143,11 +149,20 @@ public class Konkordans {
 	}
 	
 	private static boolean createTokfile() throws IOException, InterruptedException{
-		System.out.println("Creating tokfile...");
-		Process p;
-		p= Runtime.getRuntime().exec("/info/adk13/labb1/tokenizer < /info/adk13/labb1/korpus | sort > /var/tmp/tokfile");
-		p.waitFor();
-		return true;
+//		System.out.println("Creating tokfile...");
+		if(tokfile.exists())
+			return true;
+		System.out.println("Missing tokfile, run the following commands in the terminal:");
+		System.out.println();
+		System.out.println("export LC_COLLATE=C");
+		System.out.println("/info/adk13/labb1/tokenizer < /info/adk13/labb1/korpus | sort > /var/tmp/tokfile\n");
+		System.exit(1);
+		
+		return false;
+//		Process p;
+//		p= Runtime.getRuntime().exec("/info/adk13/labb1/tokenizer < /info/adk13/labb1/korpus | sort > /var/tmp/tokfile");
+//		p.waitFor();
+//		return true;
 	}
 	
 	private static boolean createBucket() throws IOException{
@@ -171,7 +186,7 @@ public class Konkordans {
 			if(!newWord.equals(lastWord)){				
 				out.seek(getBucketOffset(newWord));
 				out.writeLong(pos);
-//				System.out.println("word: "+newWord+" seek: "+getBucketOffset(newWord)+" pos: "+pos);
+				System.out.println("word: "+newWord+" seek: "+getBucketOffset(newWord)+" pos: "+pos+" count:"+lineSplit[2]);
 				lastWord = newWord;
 			}
 			pos += line.length()+1;
@@ -190,19 +205,20 @@ public class Konkordans {
 		String[] line = in.nextLine().split(" ");
 		String lastWord = line[0];
 		
-		long pos = 0;
+		long pos = 0, prevPos=0;
 		int count = 1;
 		
 		while(in.hasNextLine()) {
 			line = in.nextLine().split(" ");
 			String newWord = line[0];
-			if(!newWord.equals(lastWord)){ //om senast skrivna ordet inte är lika med det aktuella ordet, skriv det till filen. 
-				writer.println(newWord + " " + pos + " " + count);
+			if(!newWord.equals(lastWord)) { //om senast skrivna ordet inte är lika med det aktuella ordet, skriv det till filen. 
+				writer.println(lastWord + " " + prevPos + " " + count);
 				lastWord = newWord;
 				count = 0;
+				prevPos = pos;
 			}
 			count++;
-			pos += line[0].length()+line[1].length()+1;
+			pos += (line[0].length()+line[1].length()+2); // +2 for space mellan ord och offsett samt newline pa slutet
 		}
 		writer.close();
 		in.close();
