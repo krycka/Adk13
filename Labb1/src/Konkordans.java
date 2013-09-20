@@ -31,45 +31,58 @@ public class Konkordans {
 		tokfile = new File("/var/tmp/tokfile");
 		bucket = new File("/var/tmp/bucket");
 		wordIndex = new File("/var/tmp/wordIndex");
-		
+			
 		// Kontrollera att indexfilerna, skapa dom om någon saknas.
 		if(!checkIndexes()) {
 			System.out.println("En eller fler filer saknas, genererar nya filer...");
-			createIndexes();
+			if(createIndexes())
+				System.out.println("Generering klar!");
+			else {
+				System.out.println("Något gick fel vid genereringen av indexes...");
+				System.exit(1);
+			}
 		}		
 		// Nu är vi garanterade att ha de filer vi behöver
 		stopWatch = new StopWatch();
 		stopWatch.start();
 		
+		RandomAccessFile rafBucket = new RandomAccessFile(bucket, "r");
+		RandomAccessFile rafWordIndex = new RandomAccessFile(wordIndex, "r");
+		RandomAccessFile rafTokfile = new RandomAccessFile(tokfile, "r");
+		RandomAccessFile rafKorpus = new RandomAccessFile(korpus, "r");
+		
 		// Hämta position att söka på i wordIndex från bucket
-		RandomAccessFile raf = new RandomAccessFile(bucket, "r");
-		raf.seek(getBucketOffset(searchWord));
-		long wordIndexPos = raf.readLong();		
+//		RandomAccessFile raf = new RandomAccessFile(bucket, "r");
+//		raf.seek(getBucketOffset(searchWord));
+		rafBucket.seek(getBucketOffset(searchWord));
+		long wordIndexPos = rafBucket.readLong();		
 		long wordIndexNextPos = 0;
 		
-		// Kontrollera att vi fẗt en giltig position, annars finns ej ordet.
+		// Kontrollera att vi fått en giltig position, annars finns ej ordet.
 		if(wordIndexPos == 0) {
-			wordIndexNextPos = -1;
+			String temp = rafWordIndex.readLine();
+			if(!temp.startsWith(searchWord))
+				wordIndexNextPos = -1;
 		} else {// Fick en giltig pos, hämta nästa ord åxå.			
 			try {
-				wordIndexNextPos = raf.readLong();
+				wordIndexNextPos = rafBucket.readLong();
 				for(int i=0; i<100 && wordIndexNextPos == 0; i++) 
-					wordIndexNextPos = raf.readLong();
+					wordIndexNextPos = rafBucket.readLong();
 			} catch(EOFException e) { // Vi nådde slutet av filen, sätt slutpos till slutet av filen.
 				wordIndexNextPos = wordIndex.length();
 			}
 		}
-		raf.close();
+//		raf.close();
 
 		// Hämta offset för ordet i tokfile från wordIndex
-		raf = new RandomAccessFile(wordIndex, "r");
-		raf.seek(wordIndexPos);
+//		raf = new RandomAccessFile(wordIndex, "r");
+		rafWordIndex.seek(wordIndexPos);
 		long tokfilePos = 0;
 		int wordCount = 0;
 		boolean found = false;
 		
-		for(long i=wordIndexPos; i<wordIndexNextPos && !found; i=raf.getFilePointer()) {
-			String line[] = raf.readLine().split(" ");
+		for(long i=wordIndexPos; i<=wordIndexNextPos && !found; i=rafWordIndex.getFilePointer()) {
+			String line[] = rafWordIndex.readLine().split(" ");
 			if(line[0].equals(searchWord)) {
 				// Hämta offset i tokfile
 				tokfilePos = Long.parseLong(line[1]);
@@ -77,7 +90,7 @@ public class Konkordans {
 				found = true; // break; istallet?
 			}
 		}
-		raf.close();
+//		raf.close();
 		
 		System.out.println();
 		System.out.println("Hittade "+wordCount+" förekomster av ordet: \""+searchWord+"\". Sökningen tog "+(float)stopWatch.stop()/1000+"s.");
@@ -94,8 +107,8 @@ public class Konkordans {
 		stopWatch.start();
 		
 		// Skriv ut från korpus!
-		RandomAccessFile rafTokfile = new RandomAccessFile(tokfile, "r");
-		RandomAccessFile rafKorpus = new RandomAccessFile(korpus, "r");
+//		RandomAccessFile rafTokfile = new RandomAccessFile(tokfile, "r");
+//		RandomAccessFile rafKorpus = new RandomAccessFile(korpus, "r");
 		byte[] b = new byte[30+searchWord.length()+30];
 		
 		rafTokfile.seek(tokfilePos);
@@ -108,7 +121,13 @@ public class Konkordans {
 		}
 		System.out.println();
 		System.out.println("Utskrift av resultatet tog: "+(float)stopWatch.stop()/1000+"s");
-		raf.close();
+//		raf.close();
+		
+		rafBucket.close();
+		rafWordIndex.close();
+		rafTokfile.close();
+		rafKorpus.close();
+		
 		System.exit(0);
 	}
 
@@ -130,7 +149,7 @@ public class Konkordans {
 	private static boolean createTokfile() throws IOException, InterruptedException{
 		if(tokfile.exists())
 			return true;
-		System.out.println("Missing tokfile, run the following commands in the terminal:");
+		System.out.println("Saknar tokfile, kör följande kommandon i terminalen:");
 		System.out.println();
 		System.out.println("export LC_COLLATE=C");
 		System.out.println("/info/adk13/labb1/tokenizer < /info/adk13/labb1/korpus | sort > /var/tmp/tokfile\n");
@@ -145,7 +164,7 @@ public class Konkordans {
 	 * @throws IOException
 	 */
 	private static boolean createBucket() throws IOException{
-		System.out.println("Creating bucket index...");
+		System.out.print("Generar ny bucketfil... ");
 		Scanner in = new Scanner(wordIndex, "ISO-8859-1");
 
 		RandomAccessFile out = new RandomAccessFile(bucket, "rw");
@@ -165,13 +184,14 @@ public class Konkordans {
 			if(!newWord.equals(lastWord)){				
 				out.seek(getBucketOffset(newWord));
 				out.writeLong(pos);
-				System.out.println("word: "+newWord+" seek: "+getBucketOffset(newWord)+" pos: "+pos+" count:"+lineSplit[2]);
+//				System.out.println("word: "+newWord+" seek: "+getBucketOffset(newWord)+" pos: "+pos+" count:"+lineSplit[2]);
 				lastWord = newWord;
 			}
 			pos += line.length()+1;
 		}
 		out.close();
 		in.close();
+		System.out.println("Klart!");
 		return true;
 	}
 
@@ -182,7 +202,7 @@ public class Konkordans {
 	 * @throws UnsupportedEncodingException
 	 */
 	private static boolean createWordIndex() throws FileNotFoundException, UnsupportedEncodingException{
-		System.out.println("Creating wordIndex...");
+		System.out.print("Generarar ny wordIndex... ");
 		
 		Scanner in = new Scanner(tokfile, "ISO-8859-1");
 		PrintWriter writer = new PrintWriter(wordIndex, "ISO-8859-1");
@@ -210,7 +230,7 @@ public class Konkordans {
 		writer.println(newWord + " " + prevPos + " " + (count+1));
 		writer.close();
 		in.close();
-
+		System.out.println("Klart!");
 		return true;
 	}
 	
