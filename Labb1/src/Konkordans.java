@@ -67,7 +67,7 @@ public class Konkordans {
 		raf = new RandomAccessFile(wordIndex, "r");
 		raf.seek(wordIndexPos);
 		long tokfilePos = 0;
-		long tokfileNextPos = 0;
+//		long tokfileNextPos = 0;
 		int wordCount = 0;
 		boolean found = false;
 		
@@ -77,31 +77,17 @@ public class Konkordans {
 				// Hämta offset i tokfile
 				tokfilePos = Long.parseLong(line[1]);
 				wordCount = Integer.parseInt(line[2]);
-				System.out.println(wordCount);
+//				System.out.println(wordCount);
 				// Hämta offset till nästa ord
-				line = raf.readLine().split(" ");
-				tokfileNextPos = Long.parseLong(line[1]);
+//				line = raf.readLine().split(" ");
+//				tokfileNextPos = Long.parseLong(line[1]);
 				found = true; // break; istallet?
 			}
 		}
 		raf.close();
 		
-		// Hämta alla förekomster av ordet från tokfile och spara deras offsets
-//		LinkedList<Long> results = new LinkedList<Long>();
-//		raf = new RandomAccessFile(tokfile, "r");
-//		raf.seek(tokfilePos);
-//		for(long i=tokfilePos; i<tokfileNextPos; i=raf.getFilePointer()) {
-//			String line = raf.readLine();
-//			String temp[]= line.split(" ");
-//			results.add(Long.parseLong(temp[1]));
-//		}
-//		raf.close();
-		
-		
-		
 		System.out.println();
 		System.out.println("Hittade "+wordCount+" förekomster av ordet: \""+searchWord+"\". Sökningen tog "+(float)stopWatch.stop()/1000+"s.");
-//		System.out.println("Hittade "+results.size()+" förekomster av ordet: \""+searchWord+"\". Sökningen tog "+(float)stopWatch.stop()/1000+"s.");
 		if(wordCount > resultsLimit) {
 			System.out.println("Visa alla? [j/n]");
 			Scanner in = new Scanner(System.in);
@@ -170,7 +156,7 @@ public class Konkordans {
 		Scanner in = new Scanner(wordIndex, "ISO-8859-1");
 
 		RandomAccessFile out = new RandomAccessFile(bucket, "rw");
-		out.setLength(195120); //29*29*29 * 8 + 1*8. För att a=1, därför används inte index 0. 
+		out.setLength((30*30*30+1)*8); //30*30*30 * 8 + 1*8. För att a=1, därför används inte index 0. 
 
 		String lastWord = "";
 		String line = "";
@@ -218,7 +204,7 @@ public class Konkordans {
 				prevPos = pos;
 			}
 			count++;
-			pos += (line[0].length()+line[1].length()+2); // +2 for space mellan ord och offsett samt newline pa slutet
+			pos += (line[0].length()+line[1].length()+2); // +2 för space mellan ord och offsett samt newline på slutet
 		}
 		writer.close();
 		in.close();
@@ -234,13 +220,13 @@ public class Konkordans {
 
 		for(int i=0; i < letters.length; i++){
 			if((int)letters[i] >= 97 && (int)letters[i] <= 122) 
-				pos += ((int)letters[i]-96)*Math.pow(29, 2-i);
+				pos += ((int)letters[i]-96)*Math.pow(30, 2-i);
 			else if((int)letters[i] == 229)
-				pos += 27*Math.pow(29, 2-i); // å Ascii 134 UTF-8 229
+				pos += 27*Math.pow(30, 2-i); // å Ascii 134 UTF-8 229
 			else if((int)letters[i] == 228)
-				pos += 28*Math.pow(29, 2-i); // ä Ascii 132 UTF-8 228
+				pos += 28*Math.pow(30, 2-i); // ä Ascii 132 UTF-8 228
 			else if((int)letters[i] == 246)
-				pos += 29*Math.pow(29, 2-i); // ö Ascii 148 UTF-8 246
+				pos += 29*Math.pow(30, 2-i); // ö Ascii 148 UTF-8 246
 		}
 		return pos*8;
 	}
