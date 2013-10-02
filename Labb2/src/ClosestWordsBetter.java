@@ -4,7 +4,7 @@
 import java.util.LinkedList;
 import java.util.List;
 
-public class ClosestWords {
+public class ClosestWordsBetter {
 	LinkedList<String> closestWords = null;
 	int m[][] = new int[41][41];
 	char[] lastWord = {' '};
@@ -13,20 +13,29 @@ public class ClosestWords {
 	//Chararrays istallet for strings?
 	int partDist(char[] w1, char[] w2, int w1len, int w2len) {
 		int c2 = 1;
+		
 		for(int i = 0; i <= Math.min(w2len, lastWord.length)-1; i++){
 			if (w2[i] == lastWord[i])
 				c2++;
 			else
 				break;
 		}
-		
+	
 		for(int r=1; r<=w1len; r++){
+			int lowestRowDistance = 100;
 			for(int c=c2; c<=w2len; c++){
 				int t=0;
 				// Add one if different letters
 				if(w1[r-1] != w2[c-1]) t++;
 				// Get the least value from neighbors. Left, Over
-				m[r][c] = Math.min(Math.min(m[r-1][c]+1, m[r][c-1]+1), m[r-1][c-1]+t);	
+				m[r][c] = Math.min(Math.min(m[r-1][c]+1, m[r][c-1]+1), m[r-1][c-1]+t);
+				
+				if(m[r][c] < lowestRowDistance) 
+					lowestRowDistance = m[r][c];
+			}
+			if(lowestRowDistance > closestDistance && closestDistance != -1 ) {
+				m[w1len][w2len] = 100;
+				break;
 			}
 		}
 		lastWord = w2;
@@ -37,7 +46,7 @@ public class ClosestWords {
 		return partDist(w1.toCharArray(), w2.toCharArray(), w1.length(), w2.length());
 	}
 
-	public ClosestWords(String w, List<String> wordList) {
+	public ClosestWordsBetter(String w, List<String> wordList) {
 		init();
 		for (String s : wordList) {
 			int dist = Distance(w, s);
