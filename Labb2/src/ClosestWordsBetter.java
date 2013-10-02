@@ -22,7 +22,7 @@ public class ClosestWordsBetter {
 		}
 	
 		for(int r=1; r<=w1len; r++){
-			int lowestRowDistance = 100;
+//			int lowestRowDistance = 100;
 			for(int c=c2; c<=w2len; c++){
 				int t=0;
 				// Add one if different letters
@@ -30,13 +30,13 @@ public class ClosestWordsBetter {
 				// Get the least value from neighbors. Left, Over
 				m[r][c] = Math.min(Math.min(m[r-1][c]+1, m[r][c-1]+1), m[r-1][c-1]+t);
 				
-				if(m[r][c] < lowestRowDistance) 
-					lowestRowDistance = m[r][c];
+//				if(m[r][c] < lowestRowDistance) 
+//					lowestRowDistance = m[r][c];
 			}
-			if(lowestRowDistance > closestDistance && closestDistance != -1 ) {
-				m[w1len][w2len] = 100;
-				break;
-			}
+//			if(lowestRowDistance > closestDistance && closestDistance != -1 ) {
+//				m[w1len][w2len] = 100;
+//				break;
+//			}
 		}
 		lastWord = w2;
 		return m[w1len][w2len];
@@ -71,7 +71,6 @@ public class ClosestWordsBetter {
 	}
 	
 	private void init() {
-		for(int r=0; r<=40; r++)	m[r][0] = r;
-		for(int c=0; c<=40; c++)	m[0][c] = c;
+		for(int i=0; i<=40; i++)	m[i][0] = m[0][i] = i;
 	}
 }
